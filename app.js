@@ -1,8 +1,21 @@
 const inquirer = require("inquirer");
+const Student = require("./util/Student");
+const Staff = require("./util/Staff");
+const fs = require("fs");
 
-const studentNames = ["Mathew", "Hedi", "Jim"];
-const staffNames = ["Donny", "Thomas"];
+let file;
+let stuObjArray;
+let stuNameArray = [];
 
+function getArray() {
+  file = fs.readFileSync("./studentArray.json");
+  stuObjArray = JSON.parse(file);
+  stuObjArray.forEach((element) => {
+    stuNameArray.push(element.Name);
+  });
+}
+
+getArray();
 start();
 
 function start() {
@@ -26,7 +39,7 @@ function start() {
         name: "seeClass",
         message: "Select a student to see their grades",
         type: "list",
-        choices: [...studentNames, ...staffNames, "Go Back"],
+        choices: [...stuNameArray, "Go Back"],
         when: (answers) => answers.start === "See staff, students, and grades",
       },
       {
@@ -40,7 +53,7 @@ function start() {
         name: "removeStudent",
         message: "Which student would you like to remove?",
         type: "list",
-        choices: [...studentNames, "Go Back"],
+        choices: [...stuNameArray, "Go Back"],
         when: (answers) => answers.start === "Remove a student from the class",
       },
       {
@@ -55,7 +68,7 @@ function start() {
         name: "addGrade",
         message: "Select which student update:",
         type: "list",
-        choices: [...studentNames, "Go Back"],
+        choices: [...stuNameArray, "Go Back"],
         when: (answers) =>
           answers.start === "Add, remove, or update a student's grade",
       },
@@ -70,7 +83,7 @@ function start() {
         name: "removeStaff",
         message: "Which staff member would you like to remove?",
         type: "list",
-        choices: [...staffNames, "Go Back"],
+        choices: ["Go Back"],
         when: (answers) => answers.start === "Remove staff from the class",
       },
       {
@@ -83,6 +96,8 @@ function start() {
       },
     ])
     .then((res) => {
+      // ---------- 'GO BACK' ----------
+
       if (
         res.seeClass === "Go Back" ||
         res.removeStudent === "Go Back" ||
@@ -92,29 +107,57 @@ function start() {
         start();
       }
 
+      // ---------- ADD STUDENT ----------
+
       if (
         typeof res.addStudent === "string" &&
         res.addStudent.toLowerCase() === "go back"
       ) {
         start();
-      }
-
-      if (
-        typeof res.addStaff === "string" &&
-        res.addStaff.toLowerCase() === "go back"
+      } else if (
+        typeof res.addStudent === "string" &&
+        res.addStudent.toLowerCase() != "go back"
       ) {
+        let toAdd = new Student(res.addStudent);
+        stuNameArray.push(res.addStudent);
+        stuObjArray.push(toAdd);
+        displayArrays();
+        saveArray();
         start();
       }
+
+      // ---------- REMOVE STUDENT ----------
 
       if (res.confirmDeleteStudent) {
-        console.log(`Successfully removed ${res.removeStudent}`);
-        start();
-      }
-
-      if (res.confirmDeleteStaff) {
-        console.log(`Successfully removed ${res.removeStaff}`);
+        spliceArrays(res.removeStudent);
+        saveArray();
         start();
       }
     })
     .catch((err) => console.log(err));
+}
+
+function displayArrays() {
+  console.log(stuObjArray);
+  console.log(stuNameArray);
+}
+
+function saveArray() {
+  fs.writeFile("studentArray.json", JSON.stringify(stuObjArray), function (
+    err
+  ) {
+    if (err) {
+      throw err;
+    }
+  });
+}
+
+function spliceArrays(name) {
+  stuObjArray.forEach((element, index) => {
+    if (element.Name === name) {
+      console.log("Removing", name, "from index", index);
+      stuObjArray.splice(index, 1);
+      stuNameArray.splice(index, 1);
+    }
+  });
 }
